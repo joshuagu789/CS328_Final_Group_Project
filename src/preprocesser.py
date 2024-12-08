@@ -134,6 +134,8 @@ class FeatureExtractor(DataFrameBuilder):
         """
         adds following columns: mean, med (median), std (standard deviation), variance using the specified column name, other features include min, max, quartiles
         also labels windows with specified activity name
+
+        SPECIAL FEATURES: peak_indices, peak_mean, peak_variance, alternating_peak_ratio which are calculated from the peak values of each window
         """
         # data has filtered acceleration magnitude and annotated step locations
         feature_dfs = []
@@ -155,9 +157,43 @@ class FeatureExtractor(DataFrameBuilder):
     def __add_features(self, window: pd.DataFrame, sensorname, column_name: str):
         """
         Adds features mean, max, med, min, q25, q75, and std for the specified column_name
+        SPECIAL FEATURES: peak_indices, peak_mean, peak_variance, alternating_peak_ratio which are calculated from the peak values of each window
         NOTE: Erases all other columns on returned object, store original DataFrameBuilder in variable if want to access original labels
         """
 
+        column = window[column_name]
+        peak_index, _ = find_peaks(window[column_name], height=0.1, prominence=0.1, distance=self.sample_rate/3)
+        # test = [0 if not i in peak_index else 1 for i in range(len(window))]
+        peak_values = []
+        array = column.to_numpy()
+        for index in peak_index:
+            peak_values.append(array[index])
+
+        peak_values = np.array(peak_values)
+
+        # print(peak_index)
+
+        # print(column[peak_index[0]])
+        # print(peak_values)
+        # print(peak_values_even)
+        # print(peak_values_odd)
+
+        alternating_peaks_ratio = 1         # this feature is always >= 1
+        peak_mean = 0
+        peak_variance = 0
+
+        if len(peak_values) >= 1:
+            peak_mean = np.mean(peak_values)
+            peak_variance = np.var(peak_values)
+        if len(peak_values) >= 2:
+            peak_values_even = peak_values[::2]
+            peak_values_odd = peak_values[1::2]
+            even_mean = np.mean(peak_values_even)
+            odd_mean = np.mean(peak_values_odd)
+
+            alternating_peaks_ratio = (even_mean/odd_mean) if (even_mean > odd_mean) else (odd_mean/even_mean)
+        else:
+            print("NOT ENOUGH STEPS")
         data = {
             f'{sensorname}_mean': window[column_name].mean(), 
             f'{sensorname}_max': window[column_name].max(),
@@ -166,7 +202,11 @@ class FeatureExtractor(DataFrameBuilder):
             f'{sensorname}_q25': window[column_name].quantile(0.25),
             f'{sensorname}_q75': window[column_name].quantile(0.75),
             f'{sensorname}_std': window[column_name].std(),
-            f'{sensorname}_variance': window[column_name].var()
+            f'{sensorname}_variance': window[column_name].var(),
+            f'{sensorname}_peak_indices': peak_index,
+            f'{sensorname}_peak_mean': peak_mean,
+            f'{sensorname}_peak_variance': peak_variance,
+            f'{sensorname}_alternating_peak_ratio': alternating_peaks_ratio
         }
         df = pd.DataFrame()
         df = df._append(data,ignore_index=True)
@@ -198,7 +238,7 @@ if __name__ == "__main__":
     # print(final_df)
     print("LENGTH OF DATAFRAME IS " + str(len(final_df)))
 
-    feature_df = FeatureExtractor(final_df, 100, 5).extract_basic_features("filtered_accel_mag", "limping").finish_build()
+    feature_df = FeatureExtractor(final_df, 100, 5).extract_basic_features("filtered_accel_mag", "acceleration", "limping").finish_build()
     # print(feature_df)
     print("LENGTH OF DATAFRAME AFTER WINDOWS IS " + str(len(feature_df)))
 
