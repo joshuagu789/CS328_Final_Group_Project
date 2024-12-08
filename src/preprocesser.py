@@ -130,15 +130,10 @@ class FeatureExtractor(DataFrameBuilder):
         self.resampled = self.dataframe.resample(f'{self.window_sec}s')
         self.features: pd.DataFrame = pd.DataFrame()
 
-        # if is_resampled:
-        #     self.resampled = self.dataframe
-        # else:
-        #     self.resampled = self.dataframe.resample(f'{self.window_sec}s')
-
-
     def extract_basic_features(self, column_name: str, activity: str):
         """
-        mean, med (median), std (standard deviation), variance 
+        adds following columns: mean, med (median), std (standard deviation), variance using the specified column name, other features include min, max, quartiles
+        also labels windows with specified activity name
         """
         # data has filtered acceleration magnitude and annotated step locations
         feature_dfs = []
@@ -159,26 +154,17 @@ class FeatureExtractor(DataFrameBuilder):
 
     def __add_features(self, window: pd.DataFrame, column_name: str):
         """
-        Adds features mean, max, med, min, q25, q75, and std 
+        Adds features mean, max, med, min, q25, q75, and std for the specified column_name
         NOTE: Erases all other columns on returned object, store original DataFrameBuilder in variable if want to access original labels
         """
-        # data = {
-        #     'mean': [window[column_name].mean()], 
-        #     # 'max': [self.dataframe[column_name].max()],
-        #     'med': [window[column_name].median()], 
-        #     # 'min': [self.dataframe[column_name].min()],
-        #     # 'q25': [self.dataframe[column_name].quantile(0.25)],
-        #     # 'q75': [self.dataframe[column_name].quantile(0.75)],
-        #     'std': [window[column_name].std()],
-        #     'variance': [window[column_name].var()]
-        # }
+
         data = {
             'mean': window[column_name].mean(), 
-            # 'max': [self.dataframe[column_name].max()],
+            'max': window[column_name].max(),
             'med': window[column_name].median(), 
-            # 'min': [self.dataframe[column_name].min()],
-            # 'q25': [self.dataframe[column_name].quantile(0.25)],
-            # 'q75': [self.dataframe[column_name].quantile(0.75)],
+            'min': window[column_name].min(),
+            'q25': window[column_name].quantile(0.25),
+            'q75': window[column_name].quantile(0.75),
             'std': window[column_name].std(),
             'variance': window[column_name].var()
         }
@@ -196,11 +182,12 @@ if __name__ == "__main__":
     
     combined_dataframe = CSV_Builder(sample_rate=100).add_csv_files_in_directory(
         # relative_path="/Users/joshuagu/CICS328_Assignments/cs328-projectproposal-group-2/data/walking/abnormal/limp_walking",
-        # relative_path="./data/walking/abnormal/limp_walking",
-        relative_path="./data/walking/normal",
+        relative_path="./data/walking/abnormal/limp_walking",
+        # relative_path="./data/walking/normal",
         # relative_path="./data/not_walking",
         # relative_path="./data/walking/abnormal/duck_walking",
-        keyword="ccelerometer",
+        # keyword="ccelerometer",
+        keyword="yroscope",
         trim=True
     ).finish_build()
 
@@ -215,7 +202,7 @@ if __name__ == "__main__":
     # print(feature_df)
     print("LENGTH OF DATAFRAME AFTER WINDOWS IS " + str(len(feature_df)))
 
-    evaluater.plot_column(feature_df, "mean")
+    evaluater.plot_column(feature_df, ["mean", "variance", "max", "min"], "Window Number", "Angular Velocity (m/s)", "Rotation Features for Limp Walk", "basic_rotation_limping")
     # array = feature_df["mean"].to_numpy()
     # array = array[~np.isnan(array)]
 
