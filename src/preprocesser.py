@@ -45,7 +45,7 @@ class CSV_Builder(DataFrameBuilder):
         all_dfs = []
         #fns = glob.glob(f"data/Activities/*/*.csv")
         #fns = glob.glob(f"{root}/Activities/*/*.csv")
-        fns = glob.glob(f"{relative_path}/**/*{keyword}*.csv", recursive=True)
+        fns = sorted(glob.glob(f"{relative_path}/**/*{keyword}*.csv", recursive=True))
         # x = f"{relative_path}/*.csv"
         # fns = glob.glob(x, recursive=True)
         # fns = glob.glob(path1, recursive=True)
@@ -130,7 +130,7 @@ class FeatureExtractor(DataFrameBuilder):
         self.resampled = self.dataframe.resample(f'{self.window_sec}s')
         self.features: pd.DataFrame = pd.DataFrame()
 
-    def extract_basic_features(self, column_name: str, activity: str):
+    def extract_basic_features(self, column_name: str, sensorname, activity: str):
         """
         adds following columns: mean, med (median), std (standard deviation), variance using the specified column name, other features include min, max, quartiles
         also labels windows with specified activity name
@@ -139,7 +139,7 @@ class FeatureExtractor(DataFrameBuilder):
         feature_dfs = []
         # resampled =  self.dataframe.resample(f'{self.window_sec}s')
         for timestamp, window in self.resampled:
-            window_with_features = self.__add_features(window.copy(), column_name)
+            window_with_features = self.__add_features(window.copy(), sensorname, column_name)
             window_with_features['activity'] = activity
             window_with_features.insert(0, 'time', timestamp)
             # window_with_features['label'] = 1 if window['annotation'].sum() > 4 else 0
@@ -152,21 +152,21 @@ class FeatureExtractor(DataFrameBuilder):
 
         return self
 
-    def __add_features(self, window: pd.DataFrame, column_name: str):
+    def __add_features(self, window: pd.DataFrame, sensorname, column_name: str):
         """
         Adds features mean, max, med, min, q25, q75, and std for the specified column_name
         NOTE: Erases all other columns on returned object, store original DataFrameBuilder in variable if want to access original labels
         """
 
         data = {
-            'mean': window[column_name].mean(), 
-            'max': window[column_name].max(),
-            'med': window[column_name].median(), 
-            'min': window[column_name].min(),
-            'q25': window[column_name].quantile(0.25),
-            'q75': window[column_name].quantile(0.75),
-            'std': window[column_name].std(),
-            'variance': window[column_name].var()
+            f'{sensorname}_mean': window[column_name].mean(), 
+            f'{sensorname}_max': window[column_name].max(),
+            f'{sensorname}_med': window[column_name].median(), 
+            f'{sensorname}_min': window[column_name].min(),
+            f'{sensorname}_q25': window[column_name].quantile(0.25),
+            f'{sensorname}_q75': window[column_name].quantile(0.75),
+            f'{sensorname}_std': window[column_name].std(),
+            f'{sensorname}_variance': window[column_name].var()
         }
         df = pd.DataFrame()
         df = df._append(data,ignore_index=True)
@@ -179,7 +179,7 @@ class FeatureExtractor(DataFrameBuilder):
 if __name__ == "__main__":
     # df = pd.read_csv("/Users/joshuagu/CICS328_Assignments/cs328-projectproposal-group-2/data/walking/abnormal/limp_walking/joshua_limp1_accelerometer.csv") 
     # df = pd.read_csv("/Users/joshuagu/CICS328_Assignments/cs328-projectproposal-group-2/data/walking/normal/joshua_normal_Accelerometer1.csv") 
-    
+    keyword = 'ccelerometer'
     combined_dataframe = CSV_Builder(sample_rate=100).add_csv_files_in_directory(
         # relative_path="/Users/joshuagu/CICS328_Assignments/cs328-projectproposal-group-2/data/walking/abnormal/limp_walking",
         relative_path="./data/walking/abnormal/limp_walking",
