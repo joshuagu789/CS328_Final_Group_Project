@@ -13,7 +13,7 @@ There will be three labels for the data we collect: not walking, normal walking,
 Not Walking:
 
 - 5 minutes sitting
-- 5 minutes 
+- 5 minutes standing
 
 Walking:
 
