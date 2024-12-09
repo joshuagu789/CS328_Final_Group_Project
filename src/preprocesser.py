@@ -161,8 +161,8 @@ class FeatureExtractor(DataFrameBuilder):
         NOTE: Erases all other columns on returned object, store original DataFrameBuilder in variable if want to access original labels
         """
 
-        column = window[column_name]
-        peak_index, _ = find_peaks(window[column_name], height=0.1, prominence=0.1, distance=self.sample_rate/3)
+        column = window[column_name].copy()
+        peak_index, _ = find_peaks(column, height=0.1, prominence=0.1, distance=self.sample_rate/3)
         # test = [0 if not i in peak_index else 1 for i in range(len(window))]
         peak_values = []
         array = column.to_numpy()
@@ -203,7 +203,7 @@ class FeatureExtractor(DataFrameBuilder):
             f'{sensorname}_q75': window[column_name].quantile(0.75),
             f'{sensorname}_std': window[column_name].std(),
             f'{sensorname}_variance': window[column_name].var(),
-            f'{sensorname}_peak_indices': peak_index,
+            # f'{sensorname}_peak_indices': peak_index,
             f'{sensorname}_peak_mean': peak_mean,
             f'{sensorname}_peak_variance': peak_variance,
             f'{sensorname}_alternating_peak_ratio': alternating_peaks_ratio
@@ -242,7 +242,8 @@ if __name__ == "__main__":
     # print(feature_df)
     print("LENGTH OF DATAFRAME AFTER WINDOWS IS " + str(len(feature_df)))
 
-    evaluater.plot_column(feature_df, ["mean", "variance", "max", "min"], "Window Number", "Angular Velocity (m/s)", "Rotation Features for Limp Walk", "basic_rotation_limping")
+    evaluater.plot_column(feature_df, ["acceleration_mean", "acceleration_peak_mean", "acceleration_peak_variance", "acceleration_alternating_peak_ratio"], "Window Number", "Angular Velocity (m/s)", "Rotation Features for Limp Walk", "basic_rotation_limping")
+    # evaluater.plot_column(feature_df, ["acceleration_mean"], "Window Number", "Angular Velocity (m/s)", "Rotation Features for Limp Walk", "basic_rotation_limping")
     # array = feature_df["mean"].to_numpy()
     # array = array[~np.isnan(array)]
 
